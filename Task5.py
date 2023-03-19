@@ -76,15 +76,10 @@ def add_customer(conn, first_name, last_name, email, phones=None):
         """,(email,))
         conn.commit()
 
-        if phones == 0:
+        for i in phones:
             cur.execute("""
             INSERT INTO phone(phone) VALUES(%s) ON CONFLICT DO NOTHING;
-            """,(0,))
-        else:
-            for i in phones:
-                cur.execute("""
-                INSERT INTO phone(phone) VALUES(%s) ON CONFLICT DO NOTHING;
-                """,(i,))
+            """,(i,))
         conn.commit()
 
         cur.execute(""" 
@@ -109,14 +104,26 @@ def add_customer(conn, first_name, last_name, email, phones=None):
 
         conn.commit()
         
-
+        cur.execute(""" 
+        SELECT customer_id FROM customer JOIN email ON customer_email = email_id WHERE email=%s;
+        """,(email,))
+        customer_id = cur.fetchone()[0]
         
-
+        phone_id = []
         
+        for i in phones:
+            cur.execute(""" 
+            SELECT phone_id FROM phone WHERE phone=%s;
+            """,(i,))
+            phone_id.append(cur.fetchone()[0])
         
+        for i in phone_id:
+            cur.execute("""
+            INSERT INTO phone_customer(customer_id, phone_id) VALUES(%s,%s);
+            """,(customer_id,i))
         
-        #INSERT INTO phone_customer(customer_id) VALUES(SELECT customer_id FROM customer JOIN email ON customer(customer_email) = email(email_id) WHERE email=email);
-        #INSERT INTO phone_customer(phone_id)
+        conn.commit()
+        
         
 
 def add_phone(conn, client_id, phone):
@@ -165,7 +172,7 @@ def get_customer_phones():
     number_of_phones = int(input('Введите кол-во телефонных номеров клиента:'))
     client_phones = []
     if number_of_phones == 0:
-        return 0
+        return ['0']
     else:
         for i in range(1, number_of_phones+1):
             while True:
