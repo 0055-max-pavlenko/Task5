@@ -184,13 +184,33 @@ def get_customer_phones():
             client_phones.append(phone)
         return client_phones
 
+def show_menu():
+    print('Сделайте Ваш выбор:')
+    print('1 - Добавить нового клиента')
+    print('2 - Добавить телефон для клиента')
+    print('3 - Изменить данные клиента')
+    print('4 - Удалить телефон клиента')
+    print('5 - Удалить клиента')
+    print('6 - Найти клиента')
+    print('q - Выйти')
+
+
 
     
-with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!") as conn:
+with psycopg2.connect(database="task5", user="postgres", password="postgres") as conn:
+    
     remove_db(conn)
     create_db(conn)
-    for i in range(3):
-        add_customer(conn, get_customer_name(), get_customer_surname(), get_customer_email(), get_customer_phones())
+   
+    while True:
+        show_menu()
+        choice = input()
+        if choice == 'q':
+            break
+        elif choice == '1':
+            add_customer(conn, get_customer_name(), get_customer_surname(), get_customer_email(), get_customer_phones())
+    
+        
     
 conn.close()
 
