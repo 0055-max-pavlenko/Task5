@@ -141,6 +141,8 @@ def delete_customer(conn, client_id):
 def find_customer(conn, first_name=None, last_name=None, email=None, phone=None):
     pass
 
+
+
 def get_customer_name():
     while True:
         name = input('Введите имя клиента (поле не может быть пустым):').lstrip().rstrip()
@@ -184,6 +186,9 @@ def get_customer_phones():
             client_phones.append(phone)
         return client_phones
 
+def get_customer_id():
+    pass
+
 def show_menu():
     print('Сделайте Ваш выбор:')
     print('1 - Добавить нового клиента')
@@ -197,8 +202,16 @@ def show_menu():
 
 
     
-with psycopg2.connect(database="task5", user="postgres", password="postgres") as conn:
+with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!") as conn:
     
+    menu_choice = {'1': [add_customer, [get_customer_name, get_customer_surname, get_customer_email, get_customer_phones]],
+                   '2': [add_phone, [get_customer_id, get_customer_phones]],
+                   '3': [change_customer, [get_customer_id, get_customer_name, get_customer_surname, get_customer_email, get_customer_phones]],
+                   '4': [delete_phone, [get_customer_id, get_customer_phones]],
+                   '5': [delete_customer, [get_customer_id]],
+                   '6': [find_customer, [get_customer_name, get_customer_surname, get_customer_email, get_customer_phones]]
+                   }
+
     remove_db(conn)
     create_db(conn)
    
@@ -207,10 +220,8 @@ with psycopg2.connect(database="task5", user="postgres", password="postgres") as
         choice = input()
         if choice == 'q':
             break
-        elif choice == '1':
-            add_customer(conn, get_customer_name(), get_customer_surname(), get_customer_email(), get_customer_phones())
-    
-        
+        else:
+            menu_choice[choice][0](conn, *[i() for i in menu_choice[choice][1]])
     
 conn.close()
 
