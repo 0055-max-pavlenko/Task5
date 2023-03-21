@@ -202,7 +202,7 @@ def show_menu():
 
 
     
-with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!") as conn:
+with psycopg2.connect(database="task5", user="postgres", password="postgres") as conn:
     
     menu_choice = {'1': [add_customer, [get_customer_name, get_customer_surname, get_customer_email, get_customer_phones]],
                    '2': [add_phone, [get_customer_id, get_customer_phones]],
