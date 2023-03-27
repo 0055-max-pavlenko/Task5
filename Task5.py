@@ -63,7 +63,7 @@ def create_db(conn, cur):
 
 
 def add_customer(conn, cur, first_name, last_name, email, phones='0'):
-    
+    # вносим данные в таблицы имя, фамилия, email, телефоны
         cur.execute("""
         INSERT INTO name(name) VALUES(%s) ON CONFLICT DO NOTHING;
         """,(first_name,))
@@ -81,6 +81,7 @@ def add_customer(conn, cur, first_name, last_name, email, phones='0'):
                 """,(i,))
             conn.commit()
 
+    # определяем данные для создания записи в таблицу клиентов
         cur.execute(""" 
         SELECT name_id FROM name WHERE name=%s;
         """,(first_name,))
@@ -96,13 +97,13 @@ def add_customer(conn, cur, first_name, last_name, email, phones='0'):
         """,(email,))
         email_id = cur.fetchone()[0]
         
-
+    # заносим данные в таблицу клиентов
         cur.execute("""
         INSERT INTO customer(customer_name, customer_surname, customer_email) VALUES(%s,%s,%s);
         """,(name_id,surname_id, email_id))
-
         conn.commit()
         
+    #определяем данные для таблицы клиент-телефоны
         cur.execute(""" 
         SELECT customer_id FROM customer JOIN email ON customer_email = email_id WHERE email=%s;
         """,(email,))
@@ -115,18 +116,32 @@ def add_customer(conn, cur, first_name, last_name, email, phones='0'):
             SELECT phone_id FROM phone WHERE phone=%s;
             """,(i,))
             phone_id.append(cur.fetchone()[0])
-        
+     
+     # заносим данные в таблицу клиент-телефоны   
         for i in phone_id:
             cur.execute("""
             INSERT INTO phone_customer(customer_id, phone_id) VALUES(%s,%s);
             """,(customer_id,i))
-        
         conn.commit()
         
         
 
-def add_phone(conn, cur, client_id, phone):
-    pass
+def add_phone(conn, cur, customer_id, phone):
+    #заносим данные в таблицу телефонов
+        cur.execute("""
+                INSERT INTO phone(phone) VALUES(%s) ON CONFLICT DO NOTHING;
+                """,(phone,))
+        conn.commit()
+    #определяем данные для таблицы клиент-телефоны
+        cur.execute(""" 
+            SELECT phone_id FROM phone WHERE phone=%s;
+            """,(phone,))
+        phone_id = cur.fetchone()[0]
+    # заносим данные в таблицу клиент-телефоны   
+        cur.execute("""
+            INSERT INTO phone_customer(customer_id, phone_id) VALUES(%s,%s);
+            """,(customer_id, phone_id))
+        conn.commit()
 
 def change_customer(conn, cur, client_id, first_name=None, last_name=None, email=None, phones=None):
     pass
@@ -153,6 +168,11 @@ with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!"
         {'first_name': 'maxim', 'last_name':'pavlenko', 'email':'mpavl@gmail.com'},
         {'first_name': 'maximus', 'last_name':'pavlenko', 'email':'mpavlen@gmail.com', 'phones' : ['89035586168']},
         {'first_name': 'maximus', 'last_name':'pavlenkos', 'email':'mpavlens@gmail.com', 'phones' : ['89035586169', '89055818031','89072251637']}]
+
+    new_phones = [
+        {'customer_id':1, 'phone':'89029351516'},
+        {'customer_id':1, 'phone':'89044446216'},
+        {'customer_id':2, 'phone':'89441634276'}]
     
     with conn.cursor() as cur:
         remove_db(conn, cur)
@@ -162,6 +182,10 @@ with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!"
         for i in customers:
             add_customer(conn, cur, **i)
         print('База данных заполнена')
+
+        for i in new_phones:
+            add_phone(conn, cur, **i)
+        print('Телефоны добавлены')
     
 conn.close()
 
