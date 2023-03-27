@@ -1,8 +1,8 @@
 ﻿
 import psycopg2
 
-def remove_db(conn):
-    with conn.cursor() as cur:
+def remove_db(conn, cur):
+    
         cur.execute("""
         DROP TABLE phone_customer;
         DROP TABLE customer;
@@ -14,9 +14,8 @@ def remove_db(conn):
         """);
         conn.commit()
 
-def create_db(conn):
+def create_db(conn, cur):
     
-    with conn.cursor() as cur:
         cur.execute("""
         CREATE TABLE IF NOT EXISTS name(
             name_id SERIAL PRIMARY KEY,
@@ -63,8 +62,8 @@ def create_db(conn):
 
 
 
-def add_customer(conn, first_name, last_name, email, phones=None):
-    with conn.cursor() as cur:
+def add_customer(conn, cur, first_name, last_name, email, phones='0'):
+    
         cur.execute("""
         INSERT INTO name(name) VALUES(%s) ON CONFLICT DO NOTHING;
         """,(first_name,))
@@ -78,9 +77,9 @@ def add_customer(conn, first_name, last_name, email, phones=None):
 
         for i in phones:
             cur.execute("""
-            INSERT INTO phone(phone) VALUES(%s) ON CONFLICT DO NOTHING;
-            """,(i,))
-        conn.commit()
+                INSERT INTO phone(phone) VALUES(%s) ON CONFLICT DO NOTHING;
+                """,(i,))
+            conn.commit()
 
         cur.execute(""" 
         SELECT name_id FROM name WHERE name=%s;
@@ -126,102 +125,43 @@ def add_customer(conn, first_name, last_name, email, phones=None):
         
         
 
-def add_phone(conn, client_id, phone):
+def add_phone(conn, cur, client_id, phone):
     pass
 
-def change_customer(conn, client_id, first_name=None, last_name=None, email=None, phones=None):
+def change_customer(conn, cur, client_id, first_name=None, last_name=None, email=None, phones=None):
     pass
 
-def delete_phone(conn, client_id, phone):
+def delete_phone(conn, cur, client_id, phone):
     pass
 
-def delete_customer(conn, client_id):
+def delete_customer(conn, cur, client_id):
     pass
 
-def find_customer(conn, first_name=None, last_name=None, email=None, phone=None):
+def find_customer(conn, cur, first_name=None, last_name=None, email=None, phone=None):
     pass
 
 
 
-def get_customer_name():
-    while True:
-        name = input('Введите имя клиента (поле не может быть пустым):').lstrip().rstrip()
-        if name:
-            break
-        else:
-            continue
-    return name
 
-def get_customer_surname():
-    while True:
-        surname = input('Введите фамилию клиента (поле не может быть пустым):').lstrip().rstrip()
-        if surname:
-            break
-        else:
-            continue
-    return surname
-
-def get_customer_email():
-    while True:
-        email = input('Введите email клиента (поле не может быть пустым):').lstrip().rstrip()
-        if email and '@' in email:
-            break
-        else:
-            continue
-    return email
-
-def get_customer_phones():
-    number_of_phones = int(input('Введите кол-во телефонных номеров клиента:'))
-    client_phones = []
-    if number_of_phones == 0:
-        return ['0']
-    else:
-        for i in range(1, number_of_phones+1):
-            while True:
-                phone = input(f'Введите телефон {i} клиента (поле не может быть пустым):').lstrip().rstrip()
-                if phone:
-                    break
-                else:
-                    continue
-            client_phones.append(phone)
-        return client_phones
-
-def get_customer_id():
-    pass
-
-def show_menu():
-    print('Сделайте Ваш выбор:')
-    print('1 - Добавить нового клиента')
-    print('2 - Добавить телефон для клиента')
-    print('3 - Изменить данные клиента')
-    print('4 - Удалить телефон клиента')
-    print('5 - Удалить клиента')
-    print('6 - Найти клиента')
-    print('q - Выйти')
 
 
 
     
-with psycopg2.connect(database="task5", user="postgres", password="postgres") as conn:
+with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!") as conn:
     
-    menu_choice = {'1': [add_customer, [get_customer_name, get_customer_surname, get_customer_email, get_customer_phones]],
-                   '2': [add_phone, [get_customer_id, get_customer_phones]],
-                   '3': [change_customer, [get_customer_id, get_customer_name, get_customer_surname, get_customer_email, get_customer_phones]],
-                   '4': [delete_phone, [get_customer_id, get_customer_phones]],
-                   '5': [delete_customer, [get_customer_id]],
-                   '6': [find_customer, [get_customer_name, get_customer_surname, get_customer_email, get_customer_phones]]
-                   }
-
-    remove_db(conn)
-    create_db(conn)
-   
-    while True:
-        show_menu()
-        choice = input()
-        if choice == 'q':
-            break
-        else:
-            menu_choice[choice][0](conn, *[i() for i in menu_choice[choice][1]])
+    customers = [
+        {'first_name': 'maxim', 'last_name':'pavlenko', 'email':'mpavl@gmail.com'},
+        {'first_name': 'maximus', 'last_name':'pavlenko', 'email':'mpavlen@gmail.com', 'phones' : ['89035586168']},
+        {'first_name': 'maximus', 'last_name':'pavlenkos', 'email':'mpavlens@gmail.com', 'phones' : ['89035586169', '89055818031','89072251637']}]
+    
+    with conn.cursor() as cur:
+        remove_db(conn, cur)
+        create_db(conn, cur)
+        print('База данных создана')
+        
+        for i in customers:
+            add_customer(conn, cur, **i)
+        print('База данных заполнена')
     
 conn.close()
 
