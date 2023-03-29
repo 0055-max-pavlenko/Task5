@@ -71,9 +71,11 @@ def add_customer(conn, cur, first_name, last_name, email, phones='0'):
     cur.execute("""
     INSERT INTO name(name) VALUES(%s) ON CONFLICT DO NOTHING;
     """,(first_name,))
+    
     cur.execute("""
     INSERT INTO surname(surname) VALUES(%s) ON CONFLICT DO NOTHING;
     """,(last_name,))
+    
     cur.execute("""
     INSERT INTO email(email) VALUES(%s) ON CONFLICT DO NOTHING;
     """,(email,))
@@ -144,6 +146,16 @@ def add_phone(conn, cur, customer_id, phone):
     """,(phone,))
     phone_id = cur.fetchone()[0]
 
+    #если у клиента до этого не было телефона, удаляем эту запись из таблицы клиент-телефон
+    cur.execute(""" 
+    SELECT phone_id FROM phone WHERE phone=%s;
+    """,('0',))
+    phone_id_no_phone = cur.fetchone()[0]
+
+    cur.execute(""" 
+    DELETE FROM phone_customer WHERE customer_id =%s AND phone_id = %s;
+    """,(customer_id, phone_id_no_phone))
+
     # заносим данные в таблицу клиент-телефоны 
     cur.execute("""
     INSERT INTO phone_customer(customer_id, phone_id) VALUES(%s,%s) ON CONFLICT DO NOTHING;
@@ -152,8 +164,23 @@ def add_phone(conn, cur, customer_id, phone):
       
         
 
-def change_customer(conn, cur, client_id, first_name=None, last_name=None, email=None, phones=None):
-    pass
+def change_customer(conn, cur, customer_id, first_name=None, last_name=None, email=None, phones=None):
+    # если в изменении данных задано имя (для остальных случаев код составляется по аналогии)
+    if first_name != None:
+        cur.execute("""
+        INSERT INTO name(name) VALUES(%s) ON CONFLICT DO NOTHING;
+        """,(first_name,))
+        conn.commit()
+
+        cur.execute(""" 
+        SELECT name_id FROM name WHERE name=%s;
+        """,(first_name,))
+        name_id = cur.fetchone()[0]
+
+        cur.execute("""
+        UPDATE customer SET customer_name=%s WHERE customer_id=%s;
+        """, (name_id, customer_id))
+        conn.commit()
 
 def delete_phone(conn, cur, phone):
 
@@ -167,6 +194,7 @@ def delete_phone(conn, cur, phone):
     cur.execute(""" 
     DELETE FROM phone_customer WHERE phone_id=%s;
     """,(phone_id,))
+    
     cur.execute(""" 
     DELETE FROM phone WHERE phone_id=%s;
     """,(phone_id,))
@@ -194,7 +222,6 @@ def delete_customer(conn, cur, customer_id):
         else:
             continue
     
-    
     cur.execute(""" 
     DELETE FROM customer WHERE customer_id=%s;
     """,(customer_id,))
@@ -206,16 +233,59 @@ def delete_customer(conn, cur, customer_id):
     cur.execute(""" 
     DELETE FROM email WHERE email_id=%s;
     """,(email_id,))
-
     
-
     conn.commit()
 
 
 def find_customer(conn, cur, first_name=None, last_name=None, email=None, phone=None):
-    pass
+    # если в поиске задано имя (для остальных случаев код составляется по аналогии)
 
+    if first_name != None:
+        cur.execute(""" 
+        SELECT name_id FROM name WHERE name=%s;
+        """,(first_name,))
+        
+        if cur.fetchone() == None:
+            print('Клиента с таким именем нет в базе')
+        else:
+            #получаем первичные ключи для таблиц телефонов, фамилий и эл. адресов
+            cur.execute("""
+            SELECT name_id FROM name WHERE name=%s;
+            """,(first_name,))
+            name_id = cur.fetchone()[0]
+            
+            cur.execute(""" 
+            SELECT customer_surname, customer_email, customer_id FROM customer WHERE customer_name=%s;
+            """,(name_id,))
+            customer_data = cur.fetchall()
+            
+            #выводим данные клиентов
+            print('В базе найдены следующие клиенты с таким именем:')
+            for i in customer_data:
+                print(first_name, end=' ')
+                
+                cur.execute("""
+                SELECT surname FROM surname WHERE surname_id=%s;
+                """,(i[0],))
+                print(cur.fetchone()[0], end=' ')
+                
+                cur.execute("""
+                SELECT email FROM email WHERE email_id=%s;
+                """,(i[1],))
+                print(cur.fetchone()[0], end=' ')
+                
+                cur.execute("""
+                SELECT phone_id FROM phone_customer WHERE customer_id=%s;
+                """,(i[2],))
+                phone_ids = cur.fetchall()
+                
+                for p in phone_ids:
+                    cur.execute("""
+                    SELECT phone FROM phone WHERE phone_id=%s;
+                    """,(p,))
+                    print(cur.fetchone()[0], end=' ')
 
+                print()
 
 
 
@@ -227,12 +297,20 @@ with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!"
     customers = [
         {'first_name': 'maxim', 'last_name':'pavlenko', 'email':'mpavl@gmail.com'},
         {'first_name': 'maximus', 'last_name':'pavlenko', 'email':'mpavlen@gmail.com', 'phones' : ['89035586168']},
-        {'first_name': 'maximus', 'last_name':'pavlenkos', 'email':'mpavlens@gmail.com', 'phones' : ['89055818031', '89055818031','89072251637']}]
+        {'first_name': 'maximus', 'last_name':'pavlenkos', 'email':'mpavlens@gmail.com', 'phones' : ['89055818031', '89055818031','89072251637']},
+        {'first_name': 'alexey', 'last_name':'petrov', 'email':'apetr@yandex.ru', 'phones' : ['89015586168']},
+        {'first_name': 'alex', 'last_name':'ivanov', 'email':'aivan@yandex.ru', 'phones' : ['89995586168']}]
 
     new_phones = [
         {'customer_id':1, 'phone':'89029351516'},
         {'customer_id':1, 'phone':'89029351516'},
         {'customer_id':2, 'phone':'89441634276'}]
+    seek_customers = [
+        {'first_name': 'maximus'}
+        ]
+    change_customers = [
+        {'customer_id':1,'first_name': 'maximilian'}
+        ]
     
     with conn.cursor() as cur:
         remove_db(conn, cur)
@@ -247,14 +325,20 @@ with psycopg2.connect(database="task5", user="postgres", password="Maxim0055!!!"
             add_phone(conn, cur, **i)
         print('Телефоны добавлены')
 
-        
+        for i in change_customers:
+            change_customer(conn, cur, **i)
+        print('Данные клиента изменены')
         
         
         delete_phone(conn, cur, '89441634276')
         print('Номер телефона удален')
 
-        delete_customer(conn, cur, 1)
+        delete_customer(conn, cur, 4)
         print('Клиент удален')
+
+        for i in seek_customers:
+            find_customer(conn, cur, **i)
+        print('Клиенты найдены')
     
 conn.close()
 
